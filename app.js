@@ -46,30 +46,71 @@ app.use(methodOverride("_method"));
 app.engine('ejs',ejsMate);
 app.use(express.static(path.join(__dirname,"/public")));
 
+// ⭐ Required for Render (fixes session cookie issue)
+app.set("trust proxy", 1);
 
-const store=MongoStore.create({
-    mongoUrl:dbUrl,
-    crypto:{
-        secret:process.env.SECRET,
+// ⭐ SESSION STORE
+const store = MongoStore.create({
+    mongoUrl: dbUrl,
+    crypto: { 
+        secret: process.env.SECRET 
     },
-    touchAfter:24*3600,  
+    touchAfter: 24 * 3600,
 });
 
-store.on("error",()=>{
-    console.log("ERROR IN MONGO SESSION STORE",err)
+store.on("error", () => {
+    console.log("ERROR IN MONGO SESSION STORE");
 });
 
-const sessionOptions={
+// ⭐ SESSION OPTIONS (LOCALHOST)
+const sessionOptions = {
     store,
-    secret:process.env.SECRET,
-    resave:false,
-    saveUninitialized:true,
-    cookie:{
-        expires: Date.now()+ 7*24*60*60*1000,
-        maxAge:7*24*60*60*1000,
-        httpOnly:true,
+    secret: process.env.SECRET,
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: false,      // ⭐ for LOCAL
+        sameSite: "lax",    // ⭐ for LOCAL
     },
 };
+
+// ⭐ PRODUCTION SETTINGS (RENDER)
+if (process.env.NODE_ENV === "production") {
+    sessionOptions.cookie.secure = true;   // cookie only over HTTPS
+    sessionOptions.cookie.sameSite = "none"; 
+}
+
+app.use(session(sessionOptions));
+app.use(flash());
+
+
+
+// const store=MongoStore.create({
+//     mongoUrl:dbUrl,
+//     crypto:{
+//         secret:process.env.SECRET,
+//     },
+//     touchAfter:24*3600,  
+// });
+
+// store.on("error",()=>{
+//     console.log("ERROR IN MONGO SESSION STORE",err)
+// });
+
+// const sessionOptions={
+//     store,
+//     secret:process.env.SECRET,
+//     resave:false,
+//     saveUninitialized:true,
+//     cookie:{
+//         expires: Date.now()+ 7*24*60*60*1000,
+//         maxAge:7*24*60*60*1000,
+//         httpOnly:true,
+//     },
+// };
 
 
 // app.get("/", (req, res) => {
@@ -77,8 +118,8 @@ const sessionOptions={
 // });
 
 
-app.use(session(sessionOptions));
-app.use(flash());
+// app.use(session(sessionOptions));
+// app.use(flash());
 
 
 
